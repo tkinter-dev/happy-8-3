@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Tìm Cặp Hình - Chúc Mừng 8/3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            font-family: 'Poppins', sans-serif;
+            padding: 20px;
+        }
+
+        .game-wrapper {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .game-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            padding: 10px;
+        }
+
+        .card {
+            aspect-ratio: 1 / 1;
+            background: #fff;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .flipped {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        .matched {
+            background: #66ff99;
+            opacity: 0.8;
+            transform: scale(0.95);
+        }
+
+        .reward-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            animation: pop 0.5s ease-in-out;
+            z-index: 1000;
+        }
+
+        .reward-popup img {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+
+        .reward-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .reward-button {
+            padding: 10px 25px;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+            color: white;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(135deg, #ff8e8e, #ffa6a6);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .play-again-btn {
+            background: linear-gradient(135deg, #4ecdc4, #66e0d9);
+            color: white;
+        }
+
+        .play-again-btn:hover {
+            background: linear-gradient(135deg, #66e0d9, #7ef0e8);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+        }
+
+        @keyframes pop {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @media (max-width: 480px) {
+            .game-container { gap: 10px; }
+            .card { font-size: 1.5rem; }
+            .game-wrapper { padding: 15px; }
+            .game-header h1 { font-size: 1.5rem; }
+        }
+
+        @media (max-width: 360px) {
+            .game-container { gap: 8px; }
+            .card { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="game-header">
+            <h1>Trò Chơi Tìm Cặp Hình - Chúc Mừng 8/3</h1>
+        </div>
+        <div class="game-container" id="game-board"></div>
+    </div>
+
+    <!-- Thêm thẻ audio cho nhạc nền -->
+    <audio id="reward-audio" preload="auto">
+        <source src="https://www.bensound.com/bensound-music/bensound-love.mp3" type="audio/mpeg">
+        Trình duyệt của bạn không hỗ trợ thẻ audio.
+    </audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script>
+        const emojis = ['🌸', '💖', '🎁', '🌷', '🌸', '💖', '🎁', '🌷', '💐', '🎀', '🌟', '🍀', '💐', '🎀', '🌟', '🍀'];
+        let shuffledEmojis = [...emojis].sort(() => Math.random() - 0.5);
+        const gameBoard = document.getElementById('game-board');
+        let selectedCards = [];
+        let matchedCards = [];
+
+        shuffledEmojis.forEach((emoji, index) => {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.dataset.emoji = emoji;
+            card.dataset.index = index;
+            card.addEventListener('click', flipCard);
+            gameBoard.appendChild(card);
+        });
+
+        function flipCard() {
+            if (selectedCards.length >= 2 || 
+                this.classList.contains('flipped') || 
+                this.classList.contains('matched')) return;
+
+            this.classList.add('flipped');
+            this.innerText = this.dataset.emoji;
+            selectedCards.push(this);
+
+            if (selectedCards.length === 2) {
+                setTimeout(checkMatch, 600);
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = selectedCards;
+            
+            if (card1.dataset.emoji === card2.dataset.emoji) {
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                matchedCards.push(card1, card2);
+            } else {
+                card1.classList.remove('flipped');
+                card2.classList.remove('flipped');
+                card1.innerText = '';
+                card2.innerText = '';
+            }
+
+            selectedCards = [];
+
+            if (matchedCards.length === emojis.length) {
+                setTimeout(showReward, 500);
+            }
+        }
+
+        function showReward() {
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 600;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+
+            // Thiết kế thiệp
+            ctx.fillStyle = '#fff5f5';
+            ctx.fillRect(0, 0, 600, 400);
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(10, 10, 580, 380);
+            const headerGradient = ctx.createLinearGradient(0, 0, 600, 100);
+            headerGradient.addColorStop(0, '#ffcccc');
+            headerGradient.addColorStop(1, '#ffe6e6');
+            ctx.fillStyle = headerGradient;
+            ctx.fillRect(0, 0, 600, 120);
+            ctx.font = 'bold 50px "Great Vibes", cursive';
+            ctx.fillStyle = '#ff6b6b';
+            ctx.textAlign = 'center';
+            ctx.fillText('Happy 8/3', 300, 80);
+            ctx.font = 'italic 24px "Poppins", sans-serif';
+            ctx.fillStyle = '#333';
+	    ctx.fillText('Chúc bạn một ngày 8/3 thật rực rỡ,', 300, 180);
+	    ctx.fillText('đầy ắp niềm vui và hạnh phúc.', 300, 220);
+            ctx.font = '40px Poppins';
+            ctx.fillStyle = '#ff9999';
+            ctx.fillText('🌷', 50, 350);
+            ctx.fillText('🌸', 550, 60);
+            ctx.beginPath();
+            ctx.moveTo(100, 250);
+            ctx.lineTo(500, 250);
+            ctx.strokeStyle = '#ff9999';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.font = '16px Poppins';
+            ctx.fillStyle = '#666';
+            ctx.fillText('From: tkien', 300, 320);
+
+            // Phát nhạc nền
+            const audio = document.getElementById('reward-audio');
+            audio.play().catch(error => {
+                console.log("Không thể phát âm thanh: ", error);
+            });
+
+            // Popup thưởng
+            const rewardPopup = document.createElement('div');
+            rewardPopup.className = 'reward-popup';
+            rewardPopup.innerHTML = `
+                <h2>Chúc mừng bạn đã thắng!</h2>
+                <p>Đây là tấm thiệp chúc mừng ngày 8/3 dành cho bạn:</p>
+                <img src="${canvas.toDataURL()}" alt="Thiệp 8/3">
+                <div class="reward-buttons">
+                    <button class="reward-button download-btn" onclick="downloadCard(this)">Tải thiệp</button>
+                    <button class="reward-button play-again-btn" onclick="this.parentElement.parentElement.remove(); resetGame(); document.getElementById('reward-audio').pause(); document.getElementById('reward-audio').currentTime = 0;">Chơi lại</button>
+                </div>
+            `;
+            document.body.appendChild(rewardPopup);
+        }
+
+        function downloadCard(button) {
+            const img = button.parentElement.previousElementSibling;
+            const link = document.createElement('a');
+            link.download = 'Thiep_Chuc_Mung_8-3.png';
+            link.href = img.src;
+            link.click();
+        }
+
+        function resetGame() {
+            shuffledEmojis = [...emojis].sort(() => Math.random() - 0.5);
+            matchedCards = [];
+            gameBoard.innerHTML = '';
+            
+            shuffledEmojis.forEach((emoji, index) => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.emoji = emoji;
+                card.dataset.index = index;
+                card.addEventListener('click', flipCard);
+                gameBoard.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
